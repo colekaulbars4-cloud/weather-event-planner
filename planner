@@ -1,0 +1,295 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": [
+        "# --- LET THE USER TYPE ANY CITY ---\n",
+        "\n",
+        "city = input(\"Enter a city (e.g. 'Chicago' or 'Chicago, IL'): \")\n",
+        "\n",
+        "geo_url = \"https://geocoding-api.open-meteo.com/v1/search\"\n",
+        "geo_params = {\"name\": city, \"count\": 1}\n",
+        "\n",
+        "geo_response = requests.get(geo_url, params=geo_params)\n",
+        "geo_data = geo_response.json()\n",
+        "\n",
+        "if \"results\" not in geo_data:\n",
+        "    print(f\"Couldn't find a location called '{city}'. Try being more specific.\")\n",
+        "else:\n",
+        "    result = geo_data[\"results\"][0]\n",
+        "    latitude = result[\"latitude\"]\n",
+        "    longitude = result[\"longitude\"]\n",
+        "    found_name = result[\"name\"]\n",
+        "    found_region = result.get(\"admin1\", \"\")\n",
+        "    found_country = result[\"country\"]\n",
+        "    print(f\"Found: {found_name}, {found_region}, {found_country}\")\n",
+        "    print(f\"Coordinates: {latitude}, {longitude}\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "79NRBFi42TOD",
+        "outputId": "7cb1c6d3-8083-4cd7-c486-21b10887c70c"
+      },
+      "execution_count": 27,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Enter a city (e.g. 'Chicago' or 'Chicago, IL'): miami\n",
+            "Found: Miami, Florida, United States\n",
+            "Coordinates: 25.77427, -80.19366\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import requests\n",
+        "\n",
+        "\n",
+        "url = \"https://api.open-meteo.com/v1/forecast\"\n",
+        "params = {\n",
+        "    \"latitude\": latitude,\n",
+        "    \"longitude\": longitude,\n",
+        "    \"daily\": [\"temperature_2m_max\", \"temperature_2m_min\", \"precipitation_probability_max\", \"windspeed_10m_max\"],\n",
+        "    \"temperature_unit\": \"fahrenheit\",\n",
+        "    \"timezone\": \"America/New_York\"\n",
+        "}\n",
+        "\n",
+        "response = requests.get(url, params=params)\n",
+        "data = response.json()\n",
+        "\n",
+        "print(\"Status code:\", response.status_code)\n",
+        "print(data)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5crrTCRY0mOQ",
+        "outputId": "4792ae5f-5b68-4df1-9465-077c077488d3"
+      },
+      "execution_count": 28,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Status code: 200\n",
+            "{'latitude': 25.772915, 'longitude': -80.19832, 'generationtime_ms': 0.14448165893554688, 'utc_offset_seconds': -14400, 'timezone': 'America/New_York', 'timezone_abbreviation': 'GMT-4', 'elevation': 6.0, 'daily_units': {'time': 'iso8601', 'temperature_2m_max': '°F', 'temperature_2m_min': '°F', 'precipitation_probability_max': '%', 'windspeed_10m_max': 'km/h'}, 'daily': {'time': ['2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14'], 'temperature_2m_max': [90.4, 90.4, 89.0, 89.0, 88.8, 88.5, 88.6], 'temperature_2m_min': [80.5, 79.4, 75.9, 83.9, 82.7, 84.1, 84.1], 'precipitation_probability_max': [2, 4, 21, 21, 11, 16, 13], 'windspeed_10m_max': [16.7, 15.8, 27.3, 27.0, 20.4, 19.2, 21.7]}}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "if \"daily\" in data:\n",
+        "    # Pull out the daily forecast pieces we actually care about\n",
+        "    daily = data[\"daily\"]\n",
+        "\n",
+        "    dates = daily[\"time\"]\n",
+        "    highs = daily[\"temperature_2m_max\"]\n",
+        "    lows = daily[\"temperature_2m_min\"]\n",
+        "    rain_chance = daily[\"precipitation_probability_max\"]\n",
+        "    wind = daily[\"windspeed_10m_max\"]\n",
+        "\n",
+        "    # Turn it into a clean table\n",
+        "    import pandas as pd\n",
+        "    forecast = pd.DataFrame({\n",
+        "        \"date\": dates,\n",
+        "        \"high_F\": highs,\n",
+        "        \"low_F\": lows,\n",
+        "        \"rain_chance_%\": rain_chance,\n",
+        "        \"max_wind_mph\": wind\n",
+        "    })\n",
+        "\n",
+        "    print(forecast)\n",
+        "else:\n",
+        "    print(\"Error: Could not retrieve daily forecast data. The API returned:\", data)\n",
+        "    print(\"Please try re-running the API call in the previous cell.\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "naeyMJYP0x-M",
+        "outputId": "63090d51-4002-451d-b65f-9c84b6fdf312"
+      },
+      "execution_count": 29,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "         date  high_F  low_F  rain_chance_%  max_wind_mph\n",
+            "0  2026-07-08    90.4   80.5              2          16.7\n",
+            "1  2026-07-09    90.4   79.4              4          15.8\n",
+            "2  2026-07-10    89.0   75.9             21          27.3\n",
+            "3  2026-07-11    89.0   83.9             21          27.0\n",
+            "4  2026-07-12    88.8   82.7             11          20.4\n",
+            "5  2026-07-13    88.5   84.1             16          19.2\n",
+            "6  2026-07-14    88.6   84.1             13          21.7\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --- FLAG GOOD DAYS FOR AN OUTDOOR VOLUNTEER EVENT ---\n",
+        "\n",
+        "def is_good_day(row):\n",
+        "    # Good day = not too hot, low rain chance, not too windy\n",
+        "    if row[\"high_F\"] > 95:\n",
+        "        return \"Too hot\"\n",
+        "    if row[\"rain_chance_%\"] > 40:\n",
+        "        return \"Rain risk\"\n",
+        "    if row[\"max_wind_mph\"] > 20:\n",
+        "        return \"Too windy\"\n",
+        "    return \"Good to go\"\n",
+        "\n",
+        "forecast[\"event_status\"] = forecast.apply(is_good_day, axis=1)\n",
+        "print(forecast[[\"date\", \"high_F\", \"rain_chance_%\", \"max_wind_mph\", \"event_status\"]])"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ghJdaOdP05Mv",
+        "outputId": "6072a964-4f14-4b32-f896-c09fdd5ec089"
+      },
+      "execution_count": 30,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "         date  high_F  rain_chance_%  max_wind_mph event_status\n",
+            "0  2026-07-08    90.4              2          16.7   Good to go\n",
+            "1  2026-07-09    90.4              4          15.8   Good to go\n",
+            "2  2026-07-10    89.0             21          27.3    Too windy\n",
+            "3  2026-07-11    89.0             21          27.0    Too windy\n",
+            "4  2026-07-12    88.8             11          20.4    Too windy\n",
+            "5  2026-07-13    88.5             16          19.2   Good to go\n",
+            "6  2026-07-14    88.6             13          21.7    Too windy\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# --- SAVE the forecast + recommendations for the repo ---\n",
+        "safe_name = found_name.replace(\" \", \"_\").lower()\n",
+        "filename = f\"{safe_name}_event_forecast.csv\"\n",
+        "\n",
+        "forecast.to_csv(filename, index=False)\n",
+        "print(f\"Saved {filename}\")\n",
+        "\n",
+        "from google.colab import files\n",
+        "files.download(filename)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        },
+        "id": "sAo7kF9G4pE_",
+        "outputId": "7e2a79f1-c838-4597-be37-ec10d4882ed9"
+      },
+      "execution_count": 31,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Saved miami_event_forecast.csv\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ],
+            "application/javascript": [
+              "\n",
+              "    async function download(id, filename, size) {\n",
+              "      if (!google.colab.kernel.accessAllowed) {\n",
+              "        return;\n",
+              "      }\n",
+              "      const div = document.createElement('div');\n",
+              "      const label = document.createElement('label');\n",
+              "      label.textContent = `Downloading \"${filename}\": `;\n",
+              "      div.appendChild(label);\n",
+              "      const progress = document.createElement('progress');\n",
+              "      progress.max = size;\n",
+              "      div.appendChild(progress);\n",
+              "      document.body.appendChild(div);\n",
+              "\n",
+              "      const buffers = [];\n",
+              "      let downloaded = 0;\n",
+              "\n",
+              "      const channel = await google.colab.kernel.comms.open(id);\n",
+              "      // Send a message to notify the kernel that we're ready.\n",
+              "      channel.send({})\n",
+              "\n",
+              "      for await (const message of channel.messages) {\n",
+              "        // Send a message to notify the kernel that we're ready.\n",
+              "        channel.send({})\n",
+              "        if (message.buffers) {\n",
+              "          for (const buffer of message.buffers) {\n",
+              "            buffers.push(buffer);\n",
+              "            downloaded += buffer.byteLength;\n",
+              "            progress.value = downloaded;\n",
+              "          }\n",
+              "        }\n",
+              "      }\n",
+              "      const blob = new Blob(buffers, {type: 'application/binary'});\n",
+              "      const a = document.createElement('a');\n",
+              "      a.href = window.URL.createObjectURL(blob);\n",
+              "      a.download = filename;\n",
+              "      div.appendChild(a);\n",
+              "      a.click();\n",
+              "      div.remove();\n",
+              "    }\n",
+              "  "
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Javascript object>"
+            ],
+            "application/javascript": [
+              "download(\"download_8a414339-671e-4f3a-81b5-c80b4610f0d5\", \"miami_event_forecast.csv\", 332)"
+            ]
+          },
+          "metadata": {}
+        }
+      ]
+    }
+  ]
+}
